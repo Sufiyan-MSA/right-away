@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test'
+import { readFile } from 'node:fs/promises'
 
 test.describe('Action bar', () => {
   test.beforeEach(async ({ page }) => {
@@ -38,5 +39,19 @@ test.describe('Action bar', () => {
 
     // No uncaught JavaScript errors should have been thrown
     expect(errors).toHaveLength(0)
+  })
+
+  test('clicking Generate .zip downloads the generated project', async ({ page }) => {
+    const [download] = await Promise.all([
+      page.waitForEvent('download'),
+      page.getByRole('button', { name: /Generate \.zip/i }).click(),
+    ])
+
+    expect(download.suggestedFilename()).toBe('my-app.zip')
+
+    // The download is named client-side, so check the payload is a real archive
+    const contents = await readFile(await download.path())
+    expect(contents.byteLength).toBeGreaterThan(0)
+    expect(contents.subarray(0, 2).toString()).toBe('PK')
   })
 })
